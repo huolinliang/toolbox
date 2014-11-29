@@ -1,0 +1,104 @@
+#!/bin/bash
+
+set -e
+
+usage()
+{
+    echo "Usage: $0 [apadh|apadl]"
+}
+
+MODEL=$1
+case $1 in
+    apadh)
+	    TARGET=apad
+	    PRODUCT=apadh
+	    COMBO=apadh-eng
+	    shift 1;;
+    apadl)
+	    TARGET=apad
+	    PRODUCT=apadl
+	    COMBO=apadl-eng
+	    shift 1;;
+    *)
+        usage
+        exit -1
+esac
+
+# buildtypes = [eng|user|userdebug]
+if [ $# -gt 0 ]; then
+    buildtypes="$1"
+fi
+
+for buildtype in $buildtypes; do
+    case $buildtype in
+        eng)
+            COMBO=${COMBO/-*/-eng}
+            echo -e "\n\t\033[33m buildtype set to [eng] model \033[0m\n"
+	    shift 1
+            ;;
+        user)
+            COMBO=${COMBO/-*/-user}
+            echo -e "\n\t\033[33m buildtype set to [user] model \033[0m\n"
+	    shift 1
+            ;;
+        userdebug)
+            COMBO=${COMBO/-*/-userdebug}
+            echo -e "\n\t\033[33m buildtype set to [userdebug] \033[0m\n"
+	    shift 1
+            ;;
+        *)
+            COMBO=${COMBO/-*/-eng}
+            echo -e "\n\t\033[33m buildtype not choose, so set to [eng] model as default\033[0m\n"
+            ;;
+    esac
+done
+
+
+echo -e "\n\t Building android for **$TARGET**\n"
+
+android_src=$(pwd)
+# change to your own kernel src path
+kernel_src=$(pwd)/kernel
+
+PRODUCT_CONFIG=$android_src/device/rockchip/$PRODUCT
+
+if [ ! -d $PRODUCT_CONFIG ]; then
+    echo "ERROR: execute add_product.sh $TARGET first !"
+    exit -1
+fi
+
+export USE_CCACHE=1
+export BUILD_TARGET=$TARGET
+export KERNEL_IMAGE=$kernel_src/out/$TARGET/arch/arm/boot/Image
+
+[[ -x $PRODUCT_CONFIG/pre-build.sh ]] && $PRODUCT_CONFIG/pre-build.sh
+
+ccache=$(which ccache | awk '{print $NF}')
+[[ -n "$ccache" ]] && $ccache -M 10G
+
+cd $android_src
+ts1=$(date +%s)
+source build/envsetup.sh
+lunch $COMBO
+make -j4 $@
+ts2=$(date +%s)
+cd -
+
+echo -e "\n\tEclipse $(( $ts2 - $ts1 )) seconds.\n"
+
+[[ -x $PRODUCT_CONFIG/post-build.sh ]] && $PRODUCT_CONFIG/post-build.sh
+
+# post image
+cp -vf $KERNEL_IMAGE $OUT/kernel
+
+# modify build.prop and default.prop before mkimage
+sed -i 's/ro\.product\.model\=.*/ro\.product\.model\='$MODEL'/' $OUT/system/build.prop
+sed -i 's/ro\.product\.model\=.*/ro\.product\.model\='$MODEL'/' $OUT/recovery/root/default.prop
+
+# copy parameter and modify it according to ro.product.model
+cp -v ./device/rockchip/$TARGET_PRODUCT/parameter rockdev/Image/
+sed -i 's/MACHINE_MODEL:.*/MACHINE_MODEL:'$MODEL'/' rockdev/Image/parameter
+sed -i 's///g' rockdev/Image/parameter
+
+./mkimage.sh
+

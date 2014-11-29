@@ -1,0 +1,51 @@
+#!/bin/bash
+
+set -e
+
+die()
+{
+    echo "** Error: $1"
+    exit -1
+}
+
+case $1 in
+	apad)
+		TARGET=apad
+        CONFIG=rk3188_apad_android4.4_defconfig
+		shift 1;;
+	*)
+        die "Usage: $0 [apad]"
+esac
+
+echo -e "\n\t Building kernel for **$TARGET** \n"
+
+# modify to your cross compiler prefix
+compile="$(pwd)/../prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin/arm-eabi-"
+# define kernel source path
+kernel_src="$(pwd)"
+kernel_out="$(pwd)/out/$TARGET"
+
+mkdir -p ${kernel_out}
+
+ccache=$(which ccache | awk '{print $NF}')
+[[ -n "$ccache" ]] && $ccache -M 10G
+
+export ARCH=arm
+export CROSS_COMPILE="$ccache ${compile}"
+
+ts1=$(date +%s)
+[[ -f $kernel_out/.config ]] || make -C ${kernel_src} O=${kernel_out} $CONFIG
+make -C ${kernel_src} O=${kernel_out} -j4 $@
+ts2=$(date +%s)
+
+echo -e "\n\tEclipse $(( $ts2 - $ts1 )) seconds.\n"
+
+# post
+[[ -f ${kernel_out}/arch/arm/boot/Image ]] && cp -vf ${kernel_out}/arch/arm/boot/Image ${kernel_out}/ && cp -vf ${kernel_out}/arch/arm/boot/Image $(pwd)/arch/arm/boot/Image
+if [ -d $(pwd)/../rockdev/Image/ ]; then
+    cp -vf ${kernel_out}/kernel.img $(pwd)/../rockdev/Image/
+else
+    mkdir -p $(pwd)/../rockdev/Image
+    cp -vf ${kernel_out}/kernel.img $(pwd)/../rockdev/Image/
+fi
+
