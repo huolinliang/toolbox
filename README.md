@@ -9,6 +9,7 @@ These bash scripts are builded during my work, hope them can do some help.
 * dd\_test.sh 测试flash读写可靠性 
 * android\_build-rockchip\_based/mkvendor.sh 把定制apk存放在特定vendor分区中，此脚本需要配合mkimage.sh打包脚本 
 * android\_build-rockchip\_based/mkimage.sh 打包脚本 
+* android\_build-rockchip\_based/add\_product.sh 自动生成新的产品目录 
 
 
 ## clone the repository.
