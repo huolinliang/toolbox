@@ -12,6 +12,7 @@ These bash scripts are builded during my work, hope them can do some help.
 * android\_build-rockchip\_based/add\_product.sh 自动生成新的产品目录 
 * android\_build-rockchip\_based/build\_android.sh  android编译脚本
 * android\_build-rockchip\_based/build\_kernel.sh  内核编译脚本
+* add\_remote\_for\_all.sh  为某个repo下的所有git仓库添加自己的remote地址
 
 
 ## clone the repository.
