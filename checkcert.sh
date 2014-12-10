@@ -16,26 +16,24 @@ if [ $# -eq 0 ]; then
     usage
 fi
 
-mkdir .temp 
-cd .temp
 apk_count=0 
 while [ $1 ];
 do 
     apk_count=$(($apk_count + 1)) 
     echo -e "\n($apk_count) $1:\n" 
-    cert_path=$(jar -tf ../$1 | grep -iI "RSA")
+    cert_path=$(jar -tf $1 | grep -iI "RSA")
     if [ $? -ne 0 ]; then
         echo -e "\nFailed to check \"$1\""
         echo -e "Is that an apk?\n"
         shift 
         continue
     fi
-    jar -xf ../$1 $cert_path 
+    jar -xf $1 $cert_path 
     keytool -printcert -file $cert_path 
     rm -r $cert_path 
     echo ""
     shift 
 done 
-cd ../
-rm -r .temp
+tempdir=$(dirname $cert_path)
+rm -r $tempdir
 exit 0
