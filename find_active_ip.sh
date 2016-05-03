@@ -14,7 +14,7 @@ count=0
 while [ $count -lt 255 ];
 do
     count=$(($count + 1))
-    active_ip=$(ping -c 1 $net_segment.$count | grep -i "icmp_req" | awk '{print $4}'| sed 's/://g')
+    active_ip=$(ping -c 1 $net_segment.$count | grep -i "icmp_seq" | awk '{print $4}'| sed 's/://g')
     echo $active_ip
 done
 exit 0
